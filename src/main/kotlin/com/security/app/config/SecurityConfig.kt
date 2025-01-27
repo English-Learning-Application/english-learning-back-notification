@@ -1,59 +1,40 @@
 package com.security.app.config
 
-import com.security.app.filters.JwtAuthorizationFilter
-import com.security.app.services.JwtUserDetailService
-import com.security.app.services.UserService
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.security.authentication.AuthenticationProvider
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
-import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.crypto.password.NoOpPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.SecurityFilterChain
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 import org.springframework.web.reactive.function.client.WebClient
 
 @Configuration
 @EnableWebSecurity
 class SecurityConfig {
-
-    @Bean
-    fun userDetailsService(userService: UserService): UserDetailsService =
-        JwtUserDetailService(userService)
-
-
-    @Bean
-    fun authenticationProvider(userService: UserService): AuthenticationProvider =
-        DaoAuthenticationProvider()
-            .also {
-                it.setUserDetailsService(userDetailsService(userService))
-                it.setPasswordEncoder(passwordEncoder())
-            }
-
     @Bean
     fun passwordEncoder(): PasswordEncoder = NoOpPasswordEncoder.getInstance()
 
     @Bean
     fun securityFilterChain(
         http: HttpSecurity,
-        jwtAuthenticationFilter: JwtAuthorizationFilter,
-        authenticationProvider: AuthenticationProvider
     ): SecurityFilterChain {
         http
             .csrf { it.disable() }
             .cors { it.disable() }
             .authorizeHttpRequests {
-                it.anyRequest().authenticated()
+                it.anyRequest().permitAll()
+            }
+            .formLogin {
+                it.disable()
+            }
+            .httpBasic {
+                it.disable()
             }
             .sessionManagement {
                 it.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             }
-            .authenticationProvider(authenticationProvider)
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
         return http.build()
     }
 
