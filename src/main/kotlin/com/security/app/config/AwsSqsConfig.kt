@@ -1,11 +1,10 @@
 package com.security.app.config
 
-import com.amazonaws.auth.AWSStaticCredentialsProvider
-import com.amazonaws.auth.BasicAWSCredentials
-import com.amazonaws.services.sqs.AmazonSQS
-import com.amazonaws.services.sqs.AmazonSQSAsyncClient
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
+import software.amazon.awssdk.regions.Region
+import software.amazon.awssdk.services.sqs.SqsAsyncClient
 
 @Configuration
 class AwsSqsConfig {
@@ -16,14 +15,12 @@ class AwsSqsConfig {
     private val region: String? = System.getenv("AWS_REGION")
 
     @Bean
-    fun amazonSQSAsync(): AmazonSQS {
-        return AmazonSQSAsyncClient.builder()
-            .withRegion(region)
-            .withCredentials(
-                AWSStaticCredentialsProvider(
-                    BasicAWSCredentials(accessKey, accessSecret)
-                )
-            )
+    fun amazonSQSAsync(): SqsAsyncClient {
+        return SqsAsyncClient.builder()
+            .region(Region.of(region))
+            .credentialsProvider {
+                AwsBasicCredentials.create(accessKey, accessSecret)
+            }
             .build()
     }
 }

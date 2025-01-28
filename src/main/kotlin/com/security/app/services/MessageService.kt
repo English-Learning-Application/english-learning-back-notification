@@ -1,45 +1,146 @@
 package com.security.app.services
 
-import com.amazonaws.services.sqs.AmazonSQS
-import com.amazonaws.services.sqs.model.SendMessageRequest
+import com.security.app.entities.Notification
+import com.security.app.model.MailNotificationModel
+import com.security.app.model.NotificationStatus
+import com.security.app.model.SmsNotificationModel
+import com.security.app.request.SendNotificationRequest
+import com.security.app.utils.JsonUtils
+import com.security.app.utils.MailTypeHandler
+import com.security.app.utils.SmsTypeHandler
 import org.springframework.stereotype.Service
-import java.time.LocalDateTime
-import java.time.temporal.ChronoUnit
+import software.amazon.awssdk.services.sqs.SqsAsyncClient
+import software.amazon.awssdk.services.sqs.model.MessageAttributeValue
+import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequest
+import software.amazon.awssdk.services.sqs.model.SendMessageBatchRequestEntry
+import software.amazon.awssdk.services.sqs.model.SendMessageRequest
+import java.util.*
 
 @Service
 class MessageService(
-    private val amazonSQS: AmazonSQS
+    private val amazonSQS: SqsAsyncClient,
+    private val jsonUtils: JsonUtils,
+    private val mailNotificationTemplateService: MailNotificationTemplateService,
+    private val userNotificationCredentialService: UserNotificationCredentialService,
+    private val notificationService: NotificationService,
+    private val mailTypeHandler: MailTypeHandler,
+    private val smsNotificationTemplateService: SmsNotificationTemplateService,
+    private val smsTypeHandler: SmsTypeHandler,
 ) {
     private final val queueUrl = System.getenv("SQS_URL")
 
-    fun sendInstantMessage(message: String) {
-        val request = SendMessageRequest()
-            .withQueueUrl(queueUrl)
-            .withMessageBody(message)
+    fun sendMessage(message: SendNotificationRequest): List<Notification>? {
 
-        amazonSQS.sendMessage(request)
-        println("Instant Message Sent: $message")
-    }
+        val requestList = mutableListOf<SendMessageRequest>()
+        val notificationsList = mutableListOf<Notification>()
 
-    fun sendScheduledMessageAtSpecificTime(message: String, targetTime: LocalDateTime) {
-        val now = LocalDateTime.now()
-        val delaySeconds = ChronoUnit.SECONDS.between(now, targetTime)
+        /// This is for mail notification
+        var mailNotificationModel: MailNotificationModel? = null
+        if (message.channels.contains("mail")) {
+            val mailNotification = handleMailNotification(message)
+            if (mailNotification != null) {
+                notificationsList.add(mailNotification)
+                mailNotificationModel =
+                    mailTypeHandler.handleMailType(mailNotification.templateType, mailNotification, message.message)
 
-        if (delaySeconds < 0) {
-            throw IllegalArgumentException("The target time cannot be in the past")
+                val request = SendMessageRequest.builder()
+                    .queueUrl(queueUrl)
+                    .messageBody(jsonUtils.toJson(mailNotificationModel))
+                    .messageAttributes(
+                        mapOf(
+                            "channel" to MessageAttributeValue.builder()
+                                .dataType("String")
+                                .stringValue("mail")
+                                .build(),
+                        )
+                    )
+                requestList.add(request.build())
+            } else {
+                return null
+            }
         }
 
-        val request = SendMessageRequest()
-            .withQueueUrl(queueUrl)
-            .withMessageBody(message)
-            .withDelaySeconds(delaySeconds.toInt())
+        /// This is for sms notification
+        var smsNotificationModel: SmsNotificationModel? = null
+        if (message.channels.contains("sms")) {
+            val smsNotification = handleSmsNotification(message)
+            if (smsNotification != null) {
+                notificationsList.add(smsNotification)
+                smsNotificationModel =
+                    smsTypeHandler.handleSmsType(smsNotification.templateType, smsNotification, message.message)
 
-        amazonSQS.sendMessage(request)
-        println("Scheduled Message Sent: $message for $targetTime with $delaySeconds seconds delay")
+                val request = SendMessageRequest.builder()
+                    .queueUrl(queueUrl)
+                    .messageBody(jsonUtils.toJson(smsNotificationModel))
+                    .messageAttributes(
+                        mapOf(
+                            "channel" to MessageAttributeValue.builder()
+                                .dataType("String")
+                                .stringValue("sms")
+                                .build(),
+                        )
+                    )
+                requestList.add(request.build())
+            } else {
+                return null
+            }
+        }
+
+        val sendMessageBatchRequest = SendMessageBatchRequest.builder()
+            .queueUrl(queueUrl)
+            .entries(
+                requestList.map { request ->
+                    SendMessageBatchRequestEntry.builder()
+                        .id(UUID.randomUUID().toString())
+                        .messageBody(request.messageBody())
+                        .messageAttributes(request.messageAttributes())
+                        .build()
+                }
+            )
+
+        amazonSQS.sendMessageBatch(sendMessageBatchRequest.build()).get()
+
+        return notificationsList
     }
 
-    fun sendMessageForSpecificTime() {
-        val tomorrowAt7PM = LocalDateTime.now().plusDays(1).withHour(19).withMinute(0).withSecond(0)
-        sendScheduledMessageAtSpecificTime("This is a scheduled message for tomorrow at 7 PM", tomorrowAt7PM)
+    fun handleMailNotification(message: SendNotificationRequest): Notification? {
+        val mailNotificationTemplate = mailNotificationTemplateService.getTemplateByType(message.notificationType)
+            ?: return null
+
+        val userCredential = userNotificationCredentialService.getCredentialsByUserId(message.receiverId)
+            ?: return null
+
+        val notification = Notification().let {
+            it.mailNotificationTemplate = mailNotificationTemplate
+            it.status = NotificationStatus.PENDING
+            it.templateType = message.notificationType
+            it.userNotificationCredential = userCredential
+            it
+        }
+
+        val savedNotification = notificationService.saveNotification(notification)
+
+        return savedNotification
     }
+
+    fun handleSmsNotification(message: SendNotificationRequest): Notification? {
+        val mailNotificationTemplate = smsNotificationTemplateService.getTemplateByType(message.notificationType)
+            ?: return null
+
+        val userCredential = userNotificationCredentialService.getCredentialsByUserId(message.receiverId)
+            ?: return null
+
+        val notification = Notification().let {
+            it.smsNotificationTemplate = mailNotificationTemplate
+            it.status = NotificationStatus.PENDING
+            it.templateType = message.notificationType
+            it.userNotificationCredential = userCredential
+            it
+        }
+
+        val savedNotification = notificationService.saveNotification(notification)
+
+        return savedNotification
+    }
+
 }
