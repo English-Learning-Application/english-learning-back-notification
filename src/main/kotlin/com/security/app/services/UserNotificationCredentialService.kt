@@ -33,13 +33,18 @@ class UserNotificationCredentialService(
         } else {
             if (credential.userFcmToken.isEmpty()) {
                 credential.userFcmToken =
-                    if (request.userFcmToken != null) jsonUtils.toJson(request.userFcmToken) else ""
+                    if (request.userFcmToken != null) jsonUtils.toJson(
+                        listOf(
+                            request.userFcmToken
+                        ),
+                    ) else ""
             } else {
                 /// Map to list then add the encoded again
                 val fcmTokenList = jsonUtils.fromJson(credential.userFcmToken, List::class.java)
-                val fcmToken = if (request.userFcmToken != null) jsonUtils.toJson(request.userFcmToken) else ""
                 val fcmStringList: MutableList<String> = fcmTokenList.mapNotNull { it as? String }.toMutableList()
-                fcmStringList.add(fcmToken)
+                if (request.userFcmToken != null && !fcmStringList.contains(request.userFcmToken)) {
+                    fcmStringList.add(request.userFcmToken)
+                }
                 credential.userFcmToken = jsonUtils.toJson(fcmStringList)
             }
             credential.userEmailAddress = request.userEmailAddress ?: ""
