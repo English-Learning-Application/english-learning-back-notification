@@ -1,10 +1,12 @@
 package com.security.app.services
 
 import com.security.app.entities.Notification
+import com.security.app.entities.UserNotificationCredential
 import com.security.app.model.MailNotificationModel
 import com.security.app.model.NotificationStatus
 import com.security.app.model.SmsNotificationModel
 import com.security.app.request.SendNotificationRequest
+import com.security.app.request.UpdateUserCredentialRequest
 import com.security.app.utils.JsonUtils
 import com.security.app.utils.MailTypeHandler
 import com.security.app.utils.SmsTypeHandler
@@ -107,27 +109,29 @@ class MessageService(
         return notificationsList
     }
 
+    fun updateUserNotificationCredential(request: UpdateUserCredentialRequest): UserNotificationCredential {
+        val userNotificationCredential = userNotificationCredentialService.updateUserCredential(request)
+        return userNotificationCredential
+    }
+
     fun handleMailNotification(message: SendNotificationRequest): List<Notification>? {
         val mailNotificationTemplate = mailNotificationTemplateService.getTemplateByType(message.notificationType)
             ?: return null
 
-        val userCredentials = userNotificationCredentialService.getCredentialsByUserId(message.receiverId)
+        val userCredential =
+            userNotificationCredentialService.getCredentialsByUserId(message.receiverId) ?: return null
 
-        if (userCredentials.isEmpty()) {
-            return null
-        }
+        /// Make user credentials list distinct of email
 
         val notificationList = mutableListOf<Notification>()
-        for (userCredential in userCredentials) {
-            val notification = Notification().let {
-                it.mailNotificationTemplate = mailNotificationTemplate
-                it.status = NotificationStatus.PENDING
-                it.templateType = message.notificationType
-                it.userNotificationCredential = userCredential
-                it
-            }
-            notificationList.add(notification)
+        val notification = Notification().let {
+            it.mailNotificationTemplate = mailNotificationTemplate
+            it.status = NotificationStatus.PENDING
+            it.templateType = message.notificationType
+            it.userNotificationCredential = userCredential
+            it
         }
+        notificationList.add(notification)
 
         val savedNotification = notificationService.saveAllNotifications(notificationList)
 
@@ -138,24 +142,18 @@ class MessageService(
         val mailNotificationTemplate = smsNotificationTemplateService.getTemplateByType(message.notificationType)
             ?: return null
 
-        val userCredential = userNotificationCredentialService.getCredentialsByUserId(message.receiverId)
-
-        if (userCredential.isEmpty()) {
-            return null
-        }
+        val userCredential = userNotificationCredentialService.getCredentialsByUserId(message.receiverId) ?: return null
 
         val notificationList = mutableListOf<Notification>()
 
-        for (credential in userCredential) {
-            val notification = Notification().let {
-                it.smsNotificationTemplate = mailNotificationTemplate
-                it.status = NotificationStatus.PENDING
-                it.templateType = message.notificationType
-                it.userNotificationCredential = credential
-                it
-            }
-            notificationList.add(notification)
+        val notification = Notification().let {
+            it.smsNotificationTemplate = mailNotificationTemplate
+            it.status = NotificationStatus.PENDING
+            it.templateType = message.notificationType
+            it.userNotificationCredential = userCredential
+            it
         }
+        notificationList.add(notification)
 
         val savedNotification = notificationService.saveAllNotifications(notificationList)
 

@@ -5,5 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository
 import java.util.*
 
 interface UserNotificationCredentialsRepository : JpaRepository<UserNotificationCredential, UUID> {
-    fun findAllByUserId(userId: UUID): List<UserNotificationCredential>
+    fun findByUserId(userId: UUID): UserNotificationCredential?
 }

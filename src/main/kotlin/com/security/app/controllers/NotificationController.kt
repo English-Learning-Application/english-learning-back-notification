@@ -1,8 +1,11 @@
 package com.security.app.controllers
 
 import com.security.app.entities.Notification
+import com.security.app.entities.UserNotificationCredential
 import com.security.app.model.ListMessage
+import com.security.app.model.Message
 import com.security.app.request.SendNotificationRequest
+import com.security.app.request.UpdateUserCredentialRequest
 import com.security.app.services.MessageService
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -33,8 +36,14 @@ class NotificationController(
 
     @PostMapping("/credentials")
     fun updateCredentials(
-
-    ) : {
-
+        @RequestBody updateNotificationCredentialRequest: UpdateUserCredentialRequest
+    ): Message<UserNotificationCredential> {
+        try {
+            val userNotificationCredential =
+                messageService.updateUserNotificationCredential(updateNotificationCredentialRequest)
+            return Message.Success("User notification credential updated successfully", userNotificationCredential)
+        } catch (e: Exception) {
+            return Message.BadRequest(e.message ?: "Failed to update user notification credential")
+        }
     }
 }
