@@ -38,23 +38,25 @@ class MessageService(
         var mailNotificationModel: MailNotificationModel? = null
         if (message.channels.contains("mail")) {
             val mailNotification = handleMailNotification(message)
-            if (mailNotification != null) {
-                notificationsList.add(mailNotification)
-                mailNotificationModel =
-                    mailTypeHandler.handleMailType(mailNotification.templateType, mailNotification, message.message)
+            if (!mailNotification.isNullOrEmpty()) {
+                for (mailNoti in mailNotification) {
+                    notificationsList.add(mailNoti)
+                    mailNotificationModel =
+                        mailTypeHandler.handleMailType(mailNoti.templateType, mailNoti, message.message)
 
-                val request = SendMessageRequest.builder()
-                    .queueUrl(queueUrl)
-                    .messageBody(jsonUtils.toJson(mailNotificationModel))
-                    .messageAttributes(
-                        mapOf(
-                            "channel" to MessageAttributeValue.builder()
-                                .dataType("String")
-                                .stringValue("mail")
-                                .build(),
+                    val request = SendMessageRequest.builder()
+                        .queueUrl(queueUrl)
+                        .messageBody(jsonUtils.toJson(mailNotificationModel))
+                        .messageAttributes(
+                            mapOf(
+                                "channel" to MessageAttributeValue.builder()
+                                    .dataType("String")
+                                    .stringValue("mail")
+                                    .build(),
+                            )
                         )
-                    )
-                requestList.add(request.build())
+                    requestList.add(request.build())
+                }
             } else {
                 return null
             }
@@ -64,23 +66,25 @@ class MessageService(
         var smsNotificationModel: SmsNotificationModel? = null
         if (message.channels.contains("sms")) {
             val smsNotification = handleSmsNotification(message)
-            if (smsNotification != null) {
-                notificationsList.add(smsNotification)
-                smsNotificationModel =
-                    smsTypeHandler.handleSmsType(smsNotification.templateType, smsNotification, message.message)
+            if (!smsNotification.isNullOrEmpty()) {
+                for (smsNoti in smsNotification) {
+                    notificationsList.add(smsNoti)
+                    smsNotificationModel =
+                        smsTypeHandler.handleSmsType(smsNoti.templateType, smsNoti, message.message)
 
-                val request = SendMessageRequest.builder()
-                    .queueUrl(queueUrl)
-                    .messageBody(jsonUtils.toJson(smsNotificationModel))
-                    .messageAttributes(
-                        mapOf(
-                            "channel" to MessageAttributeValue.builder()
-                                .dataType("String")
-                                .stringValue("sms")
-                                .build(),
+                    val request = SendMessageRequest.builder()
+                        .queueUrl(queueUrl)
+                        .messageBody(jsonUtils.toJson(smsNotificationModel))
+                        .messageAttributes(
+                            mapOf(
+                                "channel" to MessageAttributeValue.builder()
+                                    .dataType("String")
+                                    .stringValue("sms")
+                                    .build(),
+                            )
                         )
-                    )
-                requestList.add(request.build())
+                    requestList.add(request.build())
+                }
             } else {
                 return null
             }
@@ -103,42 +107,57 @@ class MessageService(
         return notificationsList
     }
 
-    fun handleMailNotification(message: SendNotificationRequest): Notification? {
+    fun handleMailNotification(message: SendNotificationRequest): List<Notification>? {
         val mailNotificationTemplate = mailNotificationTemplateService.getTemplateByType(message.notificationType)
             ?: return null
 
-        val userCredential = userNotificationCredentialService.getCredentialsByUserId(message.receiverId)
-            ?: return null
+        val userCredentials = userNotificationCredentialService.getCredentialsByUserId(message.receiverId)
 
-        val notification = Notification().let {
-            it.mailNotificationTemplate = mailNotificationTemplate
-            it.status = NotificationStatus.PENDING
-            it.templateType = message.notificationType
-            it.userNotificationCredential = userCredential
-            it
+        if (userCredentials.isEmpty()) {
+            return null
         }
 
-        val savedNotification = notificationService.saveNotification(notification)
+        val notificationList = mutableListOf<Notification>()
+        for (userCredential in userCredentials) {
+            val notification = Notification().let {
+                it.mailNotificationTemplate = mailNotificationTemplate
+                it.status = NotificationStatus.PENDING
+                it.templateType = message.notificationType
+                it.userNotificationCredential = userCredential
+                it
+            }
+            notificationList.add(notification)
+        }
+
+        val savedNotification = notificationService.saveAllNotifications(notificationList)
 
         return savedNotification
     }
 
-    fun handleSmsNotification(message: SendNotificationRequest): Notification? {
+    fun handleSmsNotification(message: SendNotificationRequest): List<Notification>? {
         val mailNotificationTemplate = smsNotificationTemplateService.getTemplateByType(message.notificationType)
             ?: return null
 
         val userCredential = userNotificationCredentialService.getCredentialsByUserId(message.receiverId)
-            ?: return null
 
-        val notification = Notification().let {
-            it.smsNotificationTemplate = mailNotificationTemplate
-            it.status = NotificationStatus.PENDING
-            it.templateType = message.notificationType
-            it.userNotificationCredential = userCredential
-            it
+        if (userCredential.isEmpty()) {
+            return null
         }
 
-        val savedNotification = notificationService.saveNotification(notification)
+        val notificationList = mutableListOf<Notification>()
+
+        for (credential in userCredential) {
+            val notification = Notification().let {
+                it.smsNotificationTemplate = mailNotificationTemplate
+                it.status = NotificationStatus.PENDING
+                it.templateType = message.notificationType
+                it.userNotificationCredential = credential
+                it
+            }
+            notificationList.add(notification)
+        }
+
+        val savedNotification = notificationService.saveAllNotifications(notificationList)
 
         return savedNotification
     }

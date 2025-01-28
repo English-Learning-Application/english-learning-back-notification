@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service
 class UserNotificationCredentialService(
     private val userNotificationCredentialRepository: UserNotificationCredentialsRepository
 ) {
-    fun getCredentialsByUserId(userId: String): UserNotificationCredential? {
-        return userNotificationCredentialRepository.findByUserId(userId.toUUID())
+    fun getCredentialsByUserId(userId: String): List<UserNotificationCredential> {
+        return userNotificationCredentialRepository.findAllByUserId(userId.toUUID())
     }
 }

@@ -30,4 +30,11 @@ class NotificationController(
             return ListMessage.BadRequest(e.message ?: "Failed to send notification")
         }
     }
+
+    @PostMapping("/credentials")
+    fun updateCredentials(
+
+    ) : {
+
+    }
 }

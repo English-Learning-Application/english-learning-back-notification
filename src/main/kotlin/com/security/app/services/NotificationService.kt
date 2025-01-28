@@ -13,4 +13,9 @@ class NotificationService(
     fun saveNotification(notification: Notification): Notification {
         return notificationRepository.save(notification)
     }
+
+    @Transactional
+    fun saveAllNotifications(notifications: List<Notification>): List<Notification> {
+        return notificationRepository.saveAll(notifications)
+    }
 }
