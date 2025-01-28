@@ -17,25 +17,40 @@ spec:
       containers:
         - name: notification-service-container
           imagePullPolicy: Always
-          image: "761018889743.dkr.ecr.ap-southeast-2.amazonaws.com/course-microservice:latest"
+          image: "761018889743.dkr.ecr.ap-southeast-2.amazonaws.com/notification-microservice:latest"
           ports:
             - containerPort: 8084
           env:
+            - name: APP_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: notification-service-secret
+                  key: APP_PORT
+            - name: SQS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: notification-service-secret
+                  key: SQS_URL
+            - name: AWS_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: notification-service-secret
+                  key: AWS_ACCESS_KEY
+            - name: AWS_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: notification-service-secret
+                  key: AWS_SECRET_KEY
+            - name: AWS_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: notification-service-secret
+                  key: AWS_REGION
             - name: MODE
               valueFrom:
                 secretKeyRef:
                   name: notification-service-secret
                   key: MODE
-            - name: JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: notification-service-secret
-                  key: JWT_SECRET
-            - name: JWT_ISSUER
-              valueFrom:
-                secretKeyRef:
-                  name: notification-service-secret
-                  key: SECRET_ISSUER
             - name: DB_HOST
               valueFrom:
                 secretKeyRef:

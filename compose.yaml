@@ -9,11 +9,8 @@ services:
       - postgres
     environment:
       MODE: ${MODE}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_ISSUER: ${SECRET_ISSUER}
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
-      PROFILE_SERVICE_URL: ${PROFILE_SERVICE_URL}
       SQS_URL: ${SQS_URL}
       AWS_ACCESS_KEY: ${AWS_ACCESS_KEY}
       AWS_SECRET_KEY: ${AWS_SECRET_KEY}
