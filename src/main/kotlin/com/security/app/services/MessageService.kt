@@ -6,6 +6,7 @@ import com.security.app.model.FcmNotificationModel
 import com.security.app.model.MailNotificationModel
 import com.security.app.model.NotificationStatus
 import com.security.app.model.SmsNotificationModel
+import com.security.app.request.NotificationSendCallback
 import com.security.app.request.SendNotificationRequest
 import com.security.app.request.UpdateUserCredentialRequest
 import com.security.app.utils.*
@@ -216,13 +217,34 @@ class MessageService(
         return savedNotification
     }
 
-    fun handleNotification(notificationId: String, status: String): Notification {
-        val statusEnum = NotificationStatus.fromString(status)
+    fun handleNotification(notificationId: String, callbackRequest: NotificationSendCallback): Notification {
+        val statusEnum = NotificationStatus.fromString(callbackRequest.status)
         val notification = notificationService.getNotificationById(notificationId.toUUID())
             ?: throw IllegalArgumentException("Notification not found")
+
+        if (statusEnum == NotificationStatus.FAILED && callbackRequest.channel == "fcm") {
+            removeFcmTokenOfUser(notification.userNotificationCredential, callbackRequest.fcmToken)
+        }
 
         notification.status = statusEnum
 
         return notificationService.saveNotification(notification)
+    }
+
+    private fun removeFcmTokenOfUser(
+        userNotificationCredential: UserNotificationCredential,
+        fcmToken: String?
+    ): UserNotificationCredential {
+        val fcmTokenList: MutableList<String> =
+            jsonUtils.fromJson(userNotificationCredential.userFcmToken, List::class.java).mapNotNull { it as? String }
+                .toMutableList()
+
+        if (fcmTokenList.contains(fcmToken)) {
+            fcmTokenList.remove(fcmToken)
+        }
+
+        userNotificationCredential.userFcmToken = jsonUtils.toJson(fcmTokenList)
+
+        return userNotificationCredentialService.updateUserCredential(userNotificationCredential)
     }
 }

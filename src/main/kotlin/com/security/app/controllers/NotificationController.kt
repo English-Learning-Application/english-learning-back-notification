@@ -52,7 +52,7 @@ class NotificationController(
         @RequestBody callbackRequest: NotificationSendCallback
     ): ResponseEntity<Message<Notification>> {
         try {
-            val notification = messageService.handleNotification(notificationId, callbackRequest.status)
+            val notification = messageService.handleNotification(notificationId, callbackRequest)
             return ResponseEntity.ok(Message.Success("Notification handled successfully", notification))
         } catch (e: Exception) {
             return ResponseEntity.badRequest().body(Message.BadRequest(e.message ?: "Failed to handle notification"))

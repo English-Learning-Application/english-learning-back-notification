@@ -5,6 +5,7 @@ import com.security.app.repositories.UserNotificationCredentialsRepository
 import com.security.app.request.UpdateUserCredentialRequest
 import com.security.app.utils.JsonUtils
 import com.security.app.utils.toUUID
+import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
 
 @Service
@@ -52,5 +53,10 @@ class UserNotificationCredentialService(
             credential.username = request.username ?: ""
             return userNotificationCredentialRepository.save(credential)
         }
+    }
+
+    @Transactional
+    fun updateUserCredential(request: UserNotificationCredential): UserNotificationCredential {
+        return userNotificationCredentialRepository.save(request)
     }
 }
