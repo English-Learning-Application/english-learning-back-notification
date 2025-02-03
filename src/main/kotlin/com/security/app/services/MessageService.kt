@@ -223,7 +223,8 @@ class MessageService(
             ?: throw IllegalArgumentException("Notification not found")
 
         if (statusEnum == NotificationStatus.FAILED && callbackRequest.channel == "fcm") {
-            removeFcmTokenOfUser(notification.userNotificationCredential, callbackRequest.fcmToken)
+            val credential = removeFcmTokenOfUser(notification.userNotificationCredential, callbackRequest.fcmToken)
+            notification.userNotificationCredential = credential
         }
 
         notification.status = statusEnum
