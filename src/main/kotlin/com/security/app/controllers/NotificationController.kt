@@ -4,13 +4,12 @@ import com.security.app.entities.Notification
 import com.security.app.entities.UserNotificationCredential
 import com.security.app.model.ListMessage
 import com.security.app.model.Message
+import com.security.app.request.NotificationSendCallback
 import com.security.app.request.SendNotificationRequest
 import com.security.app.request.UpdateUserCredentialRequest
 import com.security.app.services.MessageService
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/v1/notifications")
@@ -44,6 +43,19 @@ class NotificationController(
             return Message.Success("User notification credential updated successfully", userNotificationCredential)
         } catch (e: Exception) {
             return Message.BadRequest(e.message ?: "Failed to update user notification credential")
+        }
+    }
+
+    @PostMapping("/handle/{notificationId}")
+    fun handleNotification(
+        @PathVariable notificationId: String,
+        @RequestBody callbackRequest: NotificationSendCallback
+    ): ResponseEntity<Message<Notification>> {
+        try {
+            val notification = messageService.handleNotification(notificationId, callbackRequest.status)
+            return ResponseEntity.ok(Message.Success("Notification handled successfully", notification))
+        } catch (e: Exception) {
+            return ResponseEntity.badRequest().body(Message.BadRequest(e.message ?: "Failed to handle notification"))
         }
     }
 }

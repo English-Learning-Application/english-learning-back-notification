@@ -22,10 +22,11 @@ class MailTypeHandler {
                 ) ?: "OTP Email Confirmation"
                 val body = notificationTemplate?.content?.replace(
                     "{otp}",
-                    sendNotificationMessage.otpCode
+                    sendNotificationMessage.otpCode ?: ""
                 )?.replace("{username}", userCredential.username) ?: "Your OTP is ${sendNotificationMessage.otpCode}"
                 val toEmail = userCredential.userEmailAddress
                 MailNotificationModel(
+                    notificationId = notification.id.toString(),
                     subject = subject,
                     body = body,
                     toEmail = toEmail

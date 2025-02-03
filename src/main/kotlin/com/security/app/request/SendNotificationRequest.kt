@@ -8,5 +8,8 @@ data class SendNotificationRequest(
 )
 
 data class SendNotificationMessage(
-    val otpCode: String,
+    val otpCode: String?,
+    val title: String?,
+    val message: String?,
+    val sessionId: String?,
 )

@@ -18,10 +18,11 @@ class SmsTypeHandler {
                 val userCredential = notification.userNotificationCredential
                 val message = notificationTemplate?.content?.replace(
                     "{otp}",
-                    sendNotificationMessage.otpCode
+                    sendNotificationMessage.otpCode ?: ""
                 ) ?: "Your OTP is ${sendNotificationMessage.otpCode}"
                 val toPhoneNumber = userCredential.userPhoneNumber
                 SmsNotificationModel(
+                    notificationId = notification.id.toString(),
                     message = message,
                     toNumber = toPhoneNumber
                 )
