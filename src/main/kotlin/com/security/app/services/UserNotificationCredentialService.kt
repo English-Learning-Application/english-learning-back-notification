@@ -56,6 +56,19 @@ class UserNotificationCredentialService(
     }
 
     @Transactional
+    fun deleteFcmTokens(userId: String, fcmTokens: List<String>): UserNotificationCredential {
+        val credential = userNotificationCredentialRepository.findByUserId(userId.toUUID())
+        if (credential == null) {
+            throw Exception("User not found")
+        }
+        val fcmTokenList = jsonUtils.fromJson(credential.userFcmToken, List::class.java)
+        val fcmStringList: MutableList<String> = fcmTokenList.mapNotNull { it as? String }.toMutableList()
+        fcmStringList.removeAll(fcmTokens)
+        credential.userFcmToken = jsonUtils.toJson(fcmStringList)
+        return userNotificationCredentialRepository.save(credential)
+    }
+
+    @Transactional
     fun updateUserCredential(request: UserNotificationCredential): UserNotificationCredential {
         return userNotificationCredentialRepository.save(request)
     }

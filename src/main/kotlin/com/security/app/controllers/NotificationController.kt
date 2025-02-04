@@ -4,17 +4,20 @@ import com.security.app.entities.Notification
 import com.security.app.entities.UserNotificationCredential
 import com.security.app.model.ListMessage
 import com.security.app.model.Message
+import com.security.app.request.DeleteFcmTokenRequest
 import com.security.app.request.NotificationSendCallback
 import com.security.app.request.SendNotificationRequest
 import com.security.app.request.UpdateUserCredentialRequest
 import com.security.app.services.MessageService
+import com.security.app.services.UserNotificationCredentialService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/v1/notifications")
 class NotificationController(
-    private val messageService: MessageService
+    private val messageService: MessageService,
+    private val notificationCredentialService: UserNotificationCredentialService
 ) {
     @PostMapping("/send")
     fun sendMessage(
@@ -43,6 +46,21 @@ class NotificationController(
             return Message.Success("User notification credential updated successfully", userNotificationCredential)
         } catch (e: Exception) {
             return Message.BadRequest(e.message ?: "Failed to update user notification credential")
+        }
+    }
+
+    @PostMapping("/credentials/delete-fcm")
+    fun deleteFcmToken(
+        @RequestBody deleteFcmTokenRequest: DeleteFcmTokenRequest
+    ): Message<UserNotificationCredential> {
+        try {
+            val userNotificationCredential = notificationCredentialService.deleteFcmTokens(
+                deleteFcmTokenRequest.userId,
+                deleteFcmTokenRequest.fcmTokens
+            )
+            return Message.Success("Fcm token deleted successfully", userNotificationCredential)
+        } catch (e: Exception) {
+            return Message.BadRequest(e.message ?: "Failed to delete fcm token")
         }
     }
 
