@@ -33,6 +33,26 @@ class MailTypeHandler {
                 )
             }
 
+            "reset_password_email" -> {
+                val notificationTemplate = notification.mailNotificationTemplate
+                val userCredential = notification.userNotificationCredential
+                val subject = notificationTemplate?.subject?.replace(
+                    "{username}",
+                    userCredential.username
+                ) ?: "Reset Password"
+                val body = notificationTemplate?.content?.replace(
+                    "{otp}",
+                    sendNotificationMessage.otpCode ?: ""
+                )?.replace("{username}", userCredential.username) ?: "Your OTP is ${sendNotificationMessage.otpCode}"
+                val toEmail = userCredential.userEmailAddress
+                MailNotificationModel(
+                    notificationId = notification.id.toString(),
+                    subject = subject,
+                    body = body,
+                    toEmail = toEmail
+                )
+            }
+
             else -> throw IllegalArgumentException("Invalid mail type")
         }
     }

@@ -28,6 +28,21 @@ class SmsTypeHandler {
                 )
             }
 
+            "reset_password_sms" -> {
+                val notificationTemplate = notification.smsNotificationTemplate
+                val userCredential = notification.userNotificationCredential
+                val message = notificationTemplate?.content?.replace(
+                    "{otp}",
+                    sendNotificationMessage.otpCode ?: ""
+                ) ?: "Your OTP is ${sendNotificationMessage.otpCode}"
+                val toPhoneNumber = userCredential.userPhoneNumber
+                SmsNotificationModel(
+                    notificationId = notification.id.toString(),
+                    message = message,
+                    toNumber = toPhoneNumber
+                )
+            }
+
             else -> throw IllegalArgumentException("Invalid sms type")
         }
     }
