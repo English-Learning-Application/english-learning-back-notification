@@ -40,3 +40,4 @@ notification-service.env
 
 ### Kotlin ###
 .kotlin
+pipeline.json
