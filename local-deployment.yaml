@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service-deployment
+  labels:
+    app: notification-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+    spec:
+      containers:
+        - name: notification-service-container
+          imagePullPolicy: Never
+          image: "notification-microservice:latest"
+          ports:
+            - containerPort: 8084
+          env:
+            - name: APP_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: notification-service-secret
+                  key: APP_PORT
+            - name: SQS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: notification-service-secret
+                  key: SQS_URL
+            - name: AWS_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: notification-service-secret
+                  key: AWS_ACCESS_KEY
+            - name: AWS_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: notification-service-secret
+                  key: AWS_SECRET_KEY
+            - name: AWS_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: notification-service-secret
+                  key: AWS_REGION
+            - name: MODE
+              valueFrom:
+                secretKeyRef:
+                  name: notification-service-secret
+                  key: MODE
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: notification-service-secret
+                  key: DB_HOST
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: notification-service-secret
+                  key: DB_NAME
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: notification-service-secret
+                  key: DB_PASSWORD
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: notification-service-secret
+                  key: DB_USER
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: notification-service-secret
+                  key: DB_PORT
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "512m"
+            limits:
+              memory: "512Mi"
+              cpu: "1"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-cluster-ip-service
+spec:
+  selector:
+    app: notification-service
+  ports:
+    - protocol: TCP
+      port: 8084
+      targetPort: 8084
+  type: LoadBalancer
