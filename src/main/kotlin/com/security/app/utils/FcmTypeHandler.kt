@@ -48,6 +48,36 @@ class FcmTypeHandler(
                 }
             }
 
+            "fcm_achievement" -> {
+                val notificationTemplate = notification.pushNotificationTemplate
+                val userCredential = notification.userNotificationCredential
+
+                val title = notificationTemplate?.title?.replace(
+                    "{title}",
+                    sendNotificationMessage.title ?: ""
+                ) ?: "New Achievement"
+
+                val body = notificationTemplate?.body?.replace(
+                    "{message}",
+                    sendNotificationMessage.message ?: ""
+                ) ?: "You have a new achievement"
+
+                val action = notificationTemplate?.action ?: ""
+
+                val fcmTokenList: List<String> =
+                    jsonUtils.fromJson(userCredential.userFcmToken, List::class.java).mapNotNull { it as? String }
+
+                fcmTokenList.map {
+                    FcmNotificationModel(
+                        notificationId = notification.id.toString(),
+                        title = title,
+                        body = body,
+                        action = action,
+                        fcmToken = it
+                    )
+                }
+            }
+
             else -> {
                 throw IllegalArgumentException("Invalid FCM type")
             }
